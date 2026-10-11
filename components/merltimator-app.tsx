@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, FolderOpen, Library } from "lucide-react"
+import { Calculator, FolderOpen, Library, Sigma } from "lucide-react"
 import { useAppData } from "@/lib/store"
 import { Dashboard } from "./dashboard"
+import { FormulaEditor } from "./formula-editor"
 import { ProjectWorkspace } from "./project-workspace"
 import { RateLibrary } from "./rate-library"
 
-type View = { name: "dashboard" } | { name: "rates" } | { name: "project"; id: string }
+type View = { name: "dashboard" } | { name: "rates" } | { name: "formulas" } | { name: "project"; id: string }
 
 export function MerltimatorApp() {
   const data = useAppData()
@@ -35,8 +36,8 @@ export function MerltimatorApp() {
           <nav aria-label="Main" className="flex gap-1">
             <button
               type="button"
-              className={navBtn(view.name !== "rates")}
-              aria-current={view.name !== "rates" ? "page" : undefined}
+              className={navBtn(view.name === "dashboard" || view.name === "project")}
+              aria-current={view.name === "dashboard" || view.name === "project" ? "page" : undefined}
               onClick={() => setView({ name: "dashboard" })}
             >
               <FolderOpen className="size-4" aria-hidden /> Projects
@@ -49,11 +50,20 @@ export function MerltimatorApp() {
             >
               <Library className="size-4" aria-hidden /> Rate Library
             </button>
+            <button
+              type="button"
+              className={navBtn(view.name === "formulas")}
+              aria-current={view.name === "formulas" ? "page" : undefined}
+              onClick={() => setView({ name: "formulas" })}
+            >
+              <Sigma className="size-4" aria-hidden /> Formulas
+            </button>
           </nav>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">
         {view.name === "rates" && <RateLibrary rates={data.rates} />}
+        {view.name === "formulas" && <FormulaEditor saved={data.formulas} />}
         {view.name === "dashboard" && (
           <Dashboard data={data} onOpen={(id) => setView({ name: "project", id })} />
         )}

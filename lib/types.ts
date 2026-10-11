@@ -1,3 +1,5 @@
+import type { FormulaMap } from "./formulas"
+
 export const CATEGORIES = [
   { code: "A", name: "General Requirements and Temporary Facilities" },
   { code: "B", name: "Site Preparation and Earthworks" },
@@ -97,4 +99,5 @@ export interface AppData {
   version: 1
   projects: Project[]
   rates: RateEntry[]
+  formulas?: FormulaMap
 }

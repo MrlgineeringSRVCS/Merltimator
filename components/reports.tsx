@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Printer } from "lucide-react"
-import { allocate, applyAdjustments, boqDirectTotal, directUnitCost, groupBoq, isAllocationValid, lineTotal, num, peso, quickScenarios } from "@/lib/calc"
+import { allocate, applyAdjustments, costPerSqm, boqDirectTotal, directUnitCost, groupBoq, isAllocationValid, lineTotal, num, peso, quickScenarios } from "@/lib/calc"
 import type { Project, RateEntry } from "@/lib/types"
 import { AdjustmentSummary } from "./adjustments-editor"
 import { Button } from "./ui"
@@ -13,7 +13,7 @@ const TITLES: Record<Kind, string> = { quick: "Quick Floor-Area Estimate", boq: 
 export function Reports({ project, rates }: { project: Project; rates: RateEntry[] }) {
   const [kind, setKind] = useState<Kind>("boq")
   const sections = groupBoq(project.boq)
-  const result = applyAdjustments(boqDirectTotal(project.boq), project.adjustments)
+  const result = applyAdjustments(boqDirectTotal(project.boq, project), project.adjustments)
   const sources = Array.from(new Set(project.boq.map((i) => i.rateSource).filter(Boolean)))
   const usesSamples = sources.some((s) => s.includes("[SAMPLE]")) || rates.some((r) => r.sample && sources.some((s) => s.startsWith(r.name)))
 
@@ -134,7 +134,7 @@ export function Reports({ project, rates }: { project: Project; rates: RateEntry
             </table>
             <AdjustmentSummary result={result} />
             <p className="mt-2 text-right text-xs text-muted">
-              Equivalent rate: {project.floorArea > 0 ? peso(result.grandTotal / project.floorArea) : "—"} per m²
+              Equivalent rate: {peso(costPerSqm(result.grandTotal, project.floorArea, project.floors))} per m²
             </p>
           </>
         )}
@@ -169,7 +169,7 @@ function Block({ title, text }: { title: string; text: string }) {
 }
 
 function QuickReport({ project }: { project: Project }) {
-  const scenarios = quickScenarios(project.floorArea, project.quick)
+  const scenarios = quickScenarios(project.floorArea, project.quick, project.floors)
   const valid = isAllocationValid(project.quick.allocation)
   const alloc = allocate(scenarios[1].total, project.quick.allocation)
   return (

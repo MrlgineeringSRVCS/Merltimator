@@ -1,6 +1,7 @@
 "use client"
 
 import { useSyncExternalStore } from "react"
+import { setActiveFormulas, type FormulaMap } from "./formulas"
 import { DEFAULT_ALLOCATION, type Adjustment, type AppData, type Project, type RateEntry } from "./types"
 
 const KEY = "merltimator:v1"
@@ -57,6 +58,7 @@ function load(): AppData {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       cache = JSON.parse(raw) as AppData
+      setActiveFormulas(cache.formulas)
       return cache
     }
   } catch {
@@ -77,6 +79,7 @@ function persist(data: AppData) {
 
 function set(updater: (d: AppData) => AppData) {
   cache = updater(load())
+  setActiveFormulas(cache.formulas)
   persist(cache)
   listeners.forEach((l) => l())
 }
@@ -152,8 +155,12 @@ export const actions = {
         version: 1,
         projects: [...data.projects, ...d.projects.filter((p) => !pIds.has(p.id))],
         rates: [...data.rates, ...d.rates.filter((r) => !rIds.has(r.id))],
+        formulas: { ...d.formulas, ...data.formulas },
       }
     })
+  },
+  saveFormulas(formulas: FormulaMap) {
+    set((d) => ({ ...d, formulas }))
   },
   getAll: () => load(),
 }

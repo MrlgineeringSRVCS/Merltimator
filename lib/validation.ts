@@ -1,3 +1,4 @@
+import { cleanFormulas } from "./formulas"
 import { CATEGORIES, DEFAULT_ALLOCATION, type AppData, type Project, type RateEntry } from "./types"
 
 export function parseNonNegative(input: string): { ok: true; value: number } | { ok: false; error: string } {
@@ -115,6 +116,7 @@ export function validateBackup(json: string): { ok: true; data: AppData } | { ok
         version: 1,
         projects: parsed.projects.map(cleanProject),
         rates: Array.isArray(parsed.rates) ? parsed.rates.map(cleanRate) : [],
+        formulas: cleanFormulas(parsed.formulas),
       },
     }
   } catch (e) {

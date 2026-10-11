@@ -1,15 +1,24 @@
+import { calc } from "./formulas"
 import { CATEGORIES, type Adjustment, type BoqItem, type CategoryCode } from "./types"
 
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 
 const safe = (n: number) => (Number.isFinite(n) && n >= 0 ? n : 0)
 
-export function directUnitCost(item: Pick<BoqItem, "material" | "labor" | "equipment" | "other">) {
-  return round2(safe(item.material) + safe(item.labor) + safe(item.equipment) + safe(item.other))
+const rates = (item: Pick<BoqItem, "material" | "labor" | "equipment" | "other"> & { quantity?: number }) => ({
+  material: safe(item.material),
+  labor: safe(item.labor),
+  equipment: safe(item.equipment),
+  other: safe(item.other),
+  quantity: safe(item.quantity ?? 0),
+})
+
+export function directUnitCost(item: Pick<BoqItem, "material" | "labor" | "equipment" | "other"> & { quantity?: number }) {
+  return round2(calc("unitCost", rates(item)))
 }
 
 export function lineTotal(item: BoqItem) {
-  return round2(safe(item.quantity) * directUnitCost(item))
+  return round2(calc("lineTotal", { ...rates(item), unitCost: directUnitCost(item) }))
 }
 
 export interface BoqSection {
@@ -26,13 +35,29 @@ export function groupBoq(items: BoqItem[]): BoqSection[] {
       code: c.code,
       name: c.name,
       items: sectionItems,
-      subtotal: round2(sectionItems.reduce((s, i) => s + lineTotal(i), 0)),
+      subtotal: round2(
+        calc("sectionSubtotal", {
+          sumLines: sectionItems.reduce((s, i) => s + lineTotal(i), 0),
+          itemCount: sectionItems.length,
+        }),
+      ),
     }
   }).filter((s) => s.items.length > 0)
 }
 
-export function boqDirectTotal(items: BoqItem[]) {
-  return round2(items.reduce((s, i) => s + lineTotal(i), 0))
+export function boqDirectTotal(items: BoqItem[], project?: { floorArea: number; floors: number }) {
+  return round2(
+    calc("directCost", {
+      sumSections: groupBoq(items).reduce((s, sec) => s + sec.subtotal, 0),
+      itemCount: items.length,
+      area: safe(project?.floorArea ?? 0),
+      floors: safe(project?.floors ?? 0),
+    }),
+  )
+}
+
+export function costPerSqm(grandTotal: number, area: number, floors = 1) {
+  return round2(calc("costPerSqm", { grandTotal, area: safe(area), floors: safe(floors) }))
 }
 
 export function allocationTotal(allocation: Record<string, number>) {
@@ -43,13 +68,13 @@ export function isAllocationValid(allocation: Record<string, number>) {
   return Math.abs(allocationTotal(allocation) - 100) < 0.001
 }
 
-export function quickScenarios(area: number, rates: { low: number; expected: number; high: number }) {
+export function quickScenarios(area: number, rates: { low: number; expected: number; high: number }, floors = 1) {
   const a = safe(area)
   return (["low", "expected", "high"] as const).map((key) => ({
     key,
     label: key === "low" ? "Low" : key === "expected" ? "Expected" : "High",
     rate: safe(rates[key]),
-    total: round2(a * safe(rates[key])),
+    total: round2(calc("quickTotal", { area: a, floors: safe(floors), rate: safe(rates[key]) })),
   }))
 }
 
@@ -58,7 +83,7 @@ export function allocate(total: number, allocation: Record<CategoryCode, number>
     code: c.code,
     name: c.name,
     pct: safe(allocation[c.code]),
-    amount: round2((safe(total) * safe(allocation[c.code])) / 100),
+    amount: round2(calc("allocationAmount", { total: safe(total), pct: safe(allocation[c.code]) })),
   }))
 }
 
@@ -91,9 +116,10 @@ export function applyAdjustments(direct: number, adjustments: Adjustment[]) {
       let baseAmount: number | null = null
       if (a.type === "percent") {
         baseAmount = a.base === "direct" ? directCost : running
-        amount = round2((baseAmount * safe(a.value)) / 100) * sign
+        amount =
+          round2(calc("percentAdjustment", { base: baseAmount, pct: safe(a.value), direct: directCost, running })) * sign
       } else {
-        amount = round2(safe(a.value)) * sign
+        amount = round2(calc("fixedAdjustment", { value: safe(a.value), direct: directCost, running })) * sign
       }
       running = round2(running + amount)
       rows.push({
@@ -109,7 +135,10 @@ export function applyAdjustments(direct: number, adjustments: Adjustment[]) {
         runningTotal: running,
       })
     })
-  return { directCost, rows, grandTotal: running }
+  const grandTotal = round2(
+    calc("grandTotal", { running, direct: directCost, adjustments: round2(running - directCost) }),
+  )
+  return { directCost, rows, grandTotal }
 }
 
 export function moveItem<T>(list: T[], index: number, delta: number): T[] {

@@ -1,13 +1,14 @@
 "use client"
 
 import { allocate, allocationTotal, isAllocationValid, num, peso, quickScenarios } from "@/lib/calc"
+import { getExpr } from "@/lib/formulas"
 import { DEFAULT_ALLOCATION, type Project, type QuickEstimate } from "@/lib/types"
 import { Button, Card, NumInput, SectionTitle, TextField } from "./ui"
 
 export function QuickEstimatePanel({ project, update }: { project: Project; update: (fn: (p: Project) => Project) => void }) {
   const q = project.quick
   const setQ = (patch: Partial<QuickEstimate>) => update((p) => ({ ...p, quick: { ...p.quick, ...patch } }))
-  const scenarios = quickScenarios(project.floorArea, q)
+  const scenarios = quickScenarios(project.floorArea, q, project.floors)
   const expected = scenarios[1].total
   const allocTotal = allocationTotal(q.allocation)
   const valid = isAllocationValid(q.allocation)
@@ -21,7 +22,7 @@ export function QuickEstimatePanel({ project, update }: { project: Project; upda
       <Card>
         <SectionTitle
           title="Floor-area estimate"
-          desc={`Formula: Estimated cost = Floor area (${num(project.floorArea)} m²) × Cost per m². Edit floor area in Details.`}
+          desc={`Formula: Scenario total = ${getExpr("quickTotal")} (area = ${num(project.floorArea)} m², floors = ${project.floors}). Edit it under Formulas.`}
         />
         <div className="grid gap-4 md:grid-cols-3">
           {scenarios.map((s) => (

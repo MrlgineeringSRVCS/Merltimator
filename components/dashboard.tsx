@@ -89,7 +89,7 @@ export function Dashboard({ data, onOpen }: { data: AppData; onOpen: (id: string
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data.projects.map((p) => {
-            const total = applyAdjustments(boqDirectTotal(p.boq), p.adjustments).grandTotal
+            const total = applyAdjustments(boqDirectTotal(p.boq, p), p.adjustments).grandTotal
             return (
               <Card key={p.id} className="flex flex-col gap-3">
                 <button type="button" onClick={() => onOpen(p.id)} className="text-left">

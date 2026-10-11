@@ -12,7 +12,7 @@ export function AdjustmentsEditor({ project, update }: { project: Project; updat
   const adjs = project.adjustments
   const setAdjs = (fn: (a: Adjustment[]) => Adjustment[]) => update((p) => ({ ...p, adjustments: fn(p.adjustments) }))
   const patch = (id: string, v: Partial<Adjustment>) => setAdjs((a) => a.map((x) => (x.id === id ? { ...x, ...v } : x)))
-  const result = applyAdjustments(boqDirectTotal(project.boq), adjs)
+  const result = applyAdjustments(boqDirectTotal(project.boq, project), adjs)
 
   return (
     <div className="flex flex-col gap-4">

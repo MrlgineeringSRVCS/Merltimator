@@ -28,7 +28,7 @@ export function BoqEditor({
   const [newCat, setNewCat] = useState<CategoryCode>("A")
   const [picking, setPicking] = useState<string | null>(null)
   const sections = groupBoq(project.boq)
-  const direct = boqDirectTotal(project.boq)
+  const direct = boqDirectTotal(project.boq, project)
 
   const setItems = (fn: (items: BoqItem[]) => BoqItem[]) => update((p) => ({ ...p, boq: fn(p.boq) }))
   const patch = (id: string, v: Partial<BoqItem>) => setItems((items) => items.map((i) => (i.id === id ? { ...i, ...v } : i)))
